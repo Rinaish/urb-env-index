@@ -42,9 +42,9 @@ flowchart TD
 
 ## Results
 #### Example of ranking maps: air pollution index and normalized integral index
-<div style="display: flex; justify-content: center; gap: 40px;">
-  <img src="results/figures/air_pollution.png" alt="Air pollution index" width="420" height=auto margin=0 5px>
-  <img src="results/figures/integral.png" alt="Integral index" width="420" height=auto margin=0 5px>
+<div style="display: flex; justify-content: center; gap: 20px;">
+  <img src="results/figures/air_pollution.png" alt="Air pollution index" width="40%">
+  <img src="results/figures/integral.png" alt="Integral index" width="40%">
 </div>
 
 ## Repository structure
