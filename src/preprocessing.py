@@ -1,9 +1,14 @@
+import geopandas as gpd
+import geemap
+
 from src.gee_auth import ee
 from src.load_data import get_path
 from config import START_DATE, END_DATE, START_MONTH, END_MONTH, WGS84
 
 project_id = get_path('PROJECT_ID')
-districts_ee = ee.FeatureCollection(get_path('ASSET_DISTR_EE'))
+districts_gdf = gpd.read_file(get_path('LOC_DISTR_GDF'))
+districts_ee = geemap.gdf_to_ee(districts_gdf)
+
 
 def mask_S2(image):
     qa = image.select('QA60')
