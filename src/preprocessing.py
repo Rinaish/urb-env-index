@@ -59,6 +59,7 @@ def get_image(collection_name, band_name=None, s_date=START_DATE, e_date=END_DAT
 
 def compute_green_area():
     ndvi = get_image('COPERNICUS/S2_SR_HARMONIZED', 'NDVI')
+    #threshold 0.3 to consider shaded vegetation spaces
     green_area = (ndvi.gt(0.3)).multiply(ee.Image.pixelArea()).divide(10000)
 
     return green_area
@@ -70,13 +71,17 @@ def compute_air_multiband():
     air_means['NO2'] = get_image('COPERNICUS/S5P/OFFL/L3_NO2', 'tropospheric_NO2_column_number_density')
     air_means['SO2'] = get_image('COPERNICUS/S5P/OFFL/L3_SO2', 'SO2_column_number_density')
     air_means['O3'] = get_image('COPERNICUS/S5P/OFFL/L3_O3',  'O3_column_number_density')
+    #spring season for CO to reduce high emition from vegetation in summer
     air_means['CO'] = get_image('COPERNICUS/S5P/OFFL/L3_CO',  'CO_column_number_density', s_month=3, e_month=5)
     air_means['AOD'] = get_image('MODIS/061/MCD19A2_GRANULES', 'Optical_Depth_047')
 
-    images = [air_means[name].rename(name) for name in air_means.keys()]
-
-    for img in images:
-        img = img.reproject(crs=WGS84, scale=1000).resample('bicubic')
+    images = [
+        air_means[name] \
+        .rename(name) \
+        .reproject(crs=WGS84, scale=1000)
+        .resample('bicubic')
+        for name in air_means.keys()
+    ]
 
     air_multiband = ee.Image.cat(images)
 
@@ -99,7 +104,7 @@ def export_image(image, crit, scale):
     assetId=f'projects/{project_id}/assets/images/{crit}',
     region=districts_ee.geometry(),
     scale=scale,
-    maxPixels=1e13
+    maxPixels=1e9
 )
     
     task.start()
@@ -107,6 +112,7 @@ def export_image(image, crit, scale):
 
 def export_all_images():
     export_image(compute_green_area(), 'green_area', 30)
+    #air data resolution ~1 km (TROPOMI, Sentinel-5P)
     export_image(compute_air_multiband(), 'air_multiband', 1000)
     export_image(compute_lst(), 'lst_filled', 30)
     

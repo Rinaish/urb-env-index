@@ -5,11 +5,10 @@ from src.gee_auth import ee
 from config import AIR_COMPONENT, WGS84
 
 
-def min_max_norm(col, direct=False):
+def min_max_norm(col, stimulating=False):
     """ 
-    the destimulating formula: 0 is for the worst environmental condition and 1 is the best.
-    for an air components 0 means maximum concentration.
-    for the vegetation index the direct formula is needed: 1 is for maximum share of green area.
+    stimulation=True: for green area and air pollution subindexes
+    stimulation=False: the lesser value - the higher index and environmental condition
 
     """
 
@@ -17,7 +16,7 @@ def min_max_norm(col, direct=False):
     min_v = col.min()
     norm = ((max_v - col) / (max_v - min_v)).clip(0, 1)
 
-    return norm if not direct else 1 - norm
+    return norm if not stimulating else 1 - norm
 
 
 def compute_green_area(districts_ee, districts_gdf, green_area):
@@ -47,7 +46,8 @@ def compute_air(districts_ee, air):
     for comp in AIR_COMPONENT:
         air_stats_gdf[f'norm_{comp}'] = min_max_norm(air_stats_gdf[comp])
 
-    air_stats_gdf['air_pollution'] = air_stats_gdf.filter(like='norm').T.mean()
+    norm_cols = [f'norm_{comp}' for comp in AIR_COMPONENT]
+    air_stats_gdf['air_pollution'] = air_stats_gdf[norm_cols].mean(axis=1)
 
     return air_stats_gdf
 

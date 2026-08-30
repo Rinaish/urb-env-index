@@ -1,9 +1,12 @@
+import os
 import matplotlib.pyplot as plt
 
 from src.load_data import load_all_data
 from src.criteria import *
 from config import CRITERIA, CMAPS
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def plot_map(gdf, col, output, cmap):
     fig, ax = plt.subplots(figsize=(10, 8))
@@ -17,7 +20,7 @@ def plot_map(gdf, col, output, cmap):
         linewidth=0.5,
         legend=True,
         legend_kwds={
-            'label': f'{col.replace('_', ' ').replace('norm', 'Normalized')} index',
+            'label': f"{col.replace('_', ' ').replace('norm', 'Normalized')} index",
             "shrink": 0.9,
             "aspect": 25
             },
@@ -35,6 +38,7 @@ def plot_map(gdf, col, output, cmap):
     )
 
     plt.tight_layout()
+    os.makedirs(output, exist_ok=True)
     plt.savefig(output, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -61,6 +65,9 @@ def calc_integral_idx(normalized):
 
 
 def save_results(crit, gdf):
+    os.makedirs('results/geopackages', exist_ok=True)
+    os.makedirs('results/tables', exist_ok=True)
+
     gdf.to_file(f'results/geopackages/{crit}.gpkg')
     table = gdf.drop(columns='geometry')
     table.to_csv(f'results/tables/{crit}.csv', index=False, encoding='utf-8-sig')

@@ -2,22 +2,16 @@ import os
 import geopandas as gpd
 
 from config import UTM_37N
-from dotenv import load_dotenv
 
-load_dotenv()
 
 def get_path(data_path):
-    try:
-        value = os.getenv(data_path)
 
-        if value == None:
-            raise ValueError(f'{data_path} not found in environment variables')
-        
-        return value
+    value = os.getenv(data_path)
+
+    if value == None:
+        raise ValueError(f'{data_path} not found in environment variables')
     
-    except Exception as e:
-        print(f'Failed to get the path {data_path}, error: {e}')
-        raise
+    return value
 
 
 def _check_ee_assets(ee):
@@ -59,18 +53,14 @@ def _check_loc_files():
 def _ensure_assets_exist(ee):
     missing_ee = _check_ee_assets(ee)
     missing_loc = _check_loc_files()
-    all_missing = missing_ee + missing_loc
 
-    if all_missing:
-        return False
-    
-    return True
+    return len(missing_ee) == 0 and len(missing_loc) == 0
 
             
 def load_all_data(ee):
     assets_ensured = _ensure_assets_exist(ee)
 
-    if (not assets_ensured):
+    if not assets_ensured:
 
         return None
     else:
