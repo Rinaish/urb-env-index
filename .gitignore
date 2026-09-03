@@ -15,4 +15,5 @@ results/tables
 results/figures/*
 !results/figures/air_pollution.png
 !results/figures/integral.png
-assets
+
+data

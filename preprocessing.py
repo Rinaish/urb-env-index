@@ -1,13 +1,9 @@
 import geopandas as gpd
 import geemap
 
-from src.gee_auth import ee
-from src.load_data import get_path
+from modules.gee_auth import ee
+from modules.load_data import get_path
 from config import START_DATE, END_DATE, START_MONTH, END_MONTH, WGS84
-
-project_id = get_path('PROJECT_ID')
-districts_gdf = gpd.read_file(get_path('LOC_DISTR_GDF'))
-districts_ee = geemap.gdf_to_ee(districts_gdf)
 
 
 def mask_S2(image):
@@ -32,7 +28,7 @@ def add_ndvi(image):
     return image.addBands(ndvi)
 
 
-def get_image(collection_name, band_name=None, s_date=START_DATE, e_date=END_DATE, s_month=START_MONTH, e_month=END_MONTH):
+def get_image(districts_ee, collection_name, band_name=None, s_date=START_DATE, e_date=END_DATE, s_month=START_MONTH, e_month=END_MONTH):
 
     collection = ee.ImageCollection(collection_name) \
         .filterDate(s_date, e_date) \
@@ -57,23 +53,23 @@ def get_image(collection_name, band_name=None, s_date=START_DATE, e_date=END_DAT
     return image
 
 
-def compute_green_area():
-    ndvi = get_image('COPERNICUS/S2_SR_HARMONIZED', 'NDVI')
+def compute_green_area(districts_ee):
+    ndvi = get_image(districts_ee, 'COPERNICUS/S2_SR_HARMONIZED', 'NDVI')
     #threshold 0.3 to consider shaded vegetation spaces
     green_area = (ndvi.gt(0.3)).multiply(ee.Image.pixelArea()).divide(10000)
 
     return green_area
 
 
-def compute_air_multiband():
+def compute_air_multiband(districts_ee):
     air_means = {}
 
-    air_means['NO2'] = get_image('COPERNICUS/S5P/OFFL/L3_NO2', 'tropospheric_NO2_column_number_density')
-    air_means['SO2'] = get_image('COPERNICUS/S5P/OFFL/L3_SO2', 'SO2_column_number_density')
-    air_means['O3'] = get_image('COPERNICUS/S5P/OFFL/L3_O3',  'O3_column_number_density')
+    air_means['NO2'] = get_image(districts_ee, 'COPERNICUS/S5P/OFFL/L3_NO2', 'tropospheric_NO2_column_number_density')
+    air_means['SO2'] = get_image(districts_ee, 'COPERNICUS/S5P/OFFL/L3_SO2', 'SO2_column_number_density')
+    air_means['O3'] = get_image(districts_ee, 'COPERNICUS/S5P/OFFL/L3_O3',  'O3_column_number_density')
     #spring season for CO to reduce high emition from vegetation in summer
-    air_means['CO'] = get_image('COPERNICUS/S5P/OFFL/L3_CO',  'CO_column_number_density', s_month=3, e_month=5)
-    air_means['AOD'] = get_image('MODIS/061/MCD19A2_GRANULES', 'Optical_Depth_047')
+    air_means['CO'] = get_image(districts_ee, 'COPERNICUS/S5P/OFFL/L3_CO',  'CO_column_number_density', s_month=3, e_month=5)
+    air_means['AOD'] = get_image(districts_ee, 'MODIS/061/MCD19A2_GRANULES', 'Optical_Depth_047')
 
     images = [
         air_means[name] \
@@ -88,16 +84,16 @@ def compute_air_multiband():
     return air_multiband
 
 
-def compute_lst():
-    lst_high_res = get_image('LANDSAT/LC08/C02/T1_L2', 'ST_B10')
-    lst_low_res = get_image('MODIS/061/MOD11A1', 'LST_Day_1km')
+def compute_lst(districts_ee):
+    lst_high_res = get_image(districts_ee, 'LANDSAT/LC08/C02/T1_L2', 'ST_B10')
+    lst_low_res = get_image(districts_ee, 'MODIS/061/MOD11A1', 'LST_Day_1km')
     lst_low_res_upsampled = lst_low_res.reproject(crs=WGS84, scale=30).resample('bicubic')
     lst_filled = lst_high_res.unmask(lst_low_res_upsampled)
 
     return lst_filled
 
 
-def export_image(image, crit, scale):
+def export_image(project_id, districts_ee, image, crit, scale):
     task = ee.batch.Export.image.toAsset(
     image=image,
     description=f'{crit}',
@@ -106,17 +102,20 @@ def export_image(image, crit, scale):
     scale=scale,
     maxPixels=1e9
 )
-    
     task.start()
 
 
-def export_all_images():
-    export_image(compute_green_area(), 'green_area', 30)
+def run():
+    project_id = get_path('PROJECT_ID')
+    districts_gdf = gpd.read_file(get_path('LOC_DISTR_GDF'))
+    districts_ee = geemap.gdf_to_ee(districts_gdf)
+
+    export_image(project_id, districts_ee, compute_green_area(districts_ee), 'green_area', 30)
     #air data resolution ~1 km (TROPOMI, Sentinel-5P)
-    export_image(compute_air_multiband(), 'air_multiband', 1000)
-    export_image(compute_lst(), 'lst_filled', 30)
-    
+    export_image(project_id, districts_ee, compute_air_multiband(districts_ee), 'air_multiband', 1000)
+    export_image(project_id, districts_ee, compute_lst(districts_ee), 'lst_filled', 30)
+        
 
 if __name__ == '__main__':
-    export_all_images()
+    run()
     print("All images are exported to GEE Assets")

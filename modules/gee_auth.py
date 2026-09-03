@@ -1,6 +1,6 @@
 import ee
 
-from src.load_data import get_path
+from modules.load_data import get_path
 
 def  _initialize_ee():
     print("Starting ee initialization")

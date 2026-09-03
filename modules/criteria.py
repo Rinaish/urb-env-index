@@ -1,14 +1,14 @@
 import geopandas as gpd
 import geemap
 
-from src.gee_auth import ee
+from modules.gee_auth import ee
 from config import AIR_COMPONENT, WGS84
 
 
 def min_max_norm(col, stimulating=False):
     """ 
     stimulation=True: for green area and air pollution subindexes
-    stimulation=False: the lesser value - the higher index and environmental condition
+    stimulation=False: the lesser value - the higher index and environmental wellness
 
     """
 
@@ -82,10 +82,12 @@ def compute_roads_density(districts_gdf, roads, buffer=100):
 def compute_build_density(districts_gdf, bld):
     bld['bld_area_ha'] = bld.geometry.area / 10000
 
-    joined_gdf = gpd.sjoin(districts_gdf, bld, how='left', predicate='intersects')
-    grouped_df = joined_gdf.groupby(['name']).agg({'bld_area_ha': 'sum'})
-    merged_df = grouped_df.merge(districts_gdf[['name', 'area_ha', 'geometry']], on='name', how='left')
-    build_density_gdf = gpd.GeoDataFrame(merged_df)
+    build_density_gdf = gpd.GeoDataFrame(
+        gpd.sjoin(districts_gdf, bld, how='left', predicate='intersects')
+        .groupby(['name'])
+        .agg({'bld_area_ha': 'sum'})
+        .merge(districts_gdf[['name', 'area_ha', 'geometry']], on='name', how='left')
+    )
     build_density_gdf['build_density'] = build_density_gdf['bld_area_ha'] / build_density_gdf['area_ha']
 
     return build_density_gdf.to_crs(WGS84)

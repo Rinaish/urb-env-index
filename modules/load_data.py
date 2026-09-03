@@ -3,7 +3,6 @@ import geopandas as gpd
 
 from config import UTM_37N
 
-
 def get_path(data_path):
 
     value = os.getenv(data_path)

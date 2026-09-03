@@ -48,19 +48,19 @@ flowchart TD
 </div>
 
 ## Repository structure
-- `assets/`
+- `data/`
 - `results/`
     - `figures/`
     - `geopackages/`
     - `tables/`
-- `src/`
+- `modules/`
     - `criteria.py`
     - `gee_auth.py`
     - `load_data.py`
-    - `preprocessing.py`
 - `.env`
 - `config.py`
 - `main.py`
+- `preprocessing.py`
 
 ## Installation
 ### 1. Install dependencies:
@@ -69,9 +69,9 @@ flowchart TD
 pip install -r requirements.txt
 ```
 
-### 2. Prepare assets
+### 2. Prepare data
 
-__Vector data__
+__Vectors__
 
 | Data   | Format | Description |
 | ------ | ------ | ----------- |
@@ -80,7 +80,7 @@ __Vector data__
 | roads | .gpkg | Linear road objects (Highway and rail) |
 |        |        |             |
 
-Put the obtained data into the `assets/` folder
+Put the obtained data into the `data/` folder
 </br>
 
 _You can obtain these layers from OpenStreetMap using QGIS (OSM plugin) or via the OSMnx library._
@@ -92,7 +92,7 @@ buildings = ox.features_from_place('Moscow, Russia', tags={'building': True})
 roads = ox.features_from_place('Moscow, Russia', tags={'highway': True})
 ```
 
-__Raster data__
+__Rasters__
 
 Rasters area exported once to GEE Assets via the [preprocessing.py](preprocessing.py):
 ```bash
