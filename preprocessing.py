@@ -1,9 +1,11 @@
 import geopandas as gpd
 import geemap
 
+from dotenv import load_dotenv
+load_dotenv()
 from modules.gee_auth import ee
-from modules.load_data import get_path
-from config import START_DATE, END_DATE, START_MONTH, END_MONTH, WGS84
+from modules.load_data import get_path, get_asset
+from config import PRE_CONFIG, WGS84
 
 
 def mask_S2(image):
@@ -28,19 +30,20 @@ def add_ndvi(image):
     return image.addBands(ndvi)
 
 
-def get_image(districts_ee, collection_name, band_name=None, s_date=START_DATE, e_date=END_DATE, s_month=START_MONTH, e_month=END_MONTH):
+def get_image(districts_ee, collection_name, band_name=None, **kwargs):
 
+    config = {**PRE_CONFIG, **kwargs}
     collection = ee.ImageCollection(collection_name) \
-        .filterDate(s_date, e_date) \
+        .filterDate(config['s_date'], config['e_date']) \
         .filterBounds(districts_ee) \
-        .filter(ee.Filter.calendarRange(s_month, e_month, 'month'))
+        .filter(ee.Filter.calendarRange(config['s_month'], config['e_month'], 'month'))
     
     if band_name:
         if 'S2' in collection_name:
-            collection = collection.filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 15)).map(mask_S2).map(add_ndvi).select(band_name)
+            collection = collection.filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', config['cloud_cover'])).map(mask_S2).map(add_ndvi).select(band_name)
 
         elif 'LC08' in collection_name:
-            collection = collection.filter(ee.Filter.lt('CLOUD_COVER', 15)).map(mask_L8).select(band_name)
+            collection = collection.filter(ee.Filter.lt('CLOUD_COVER', config['cloud_cover'])).map(mask_L8).select(band_name)
 
         elif 'MOD11A1' in collection_name:
             collection = collection.select(band_name).map(lambda img: img.multiply(0.02))
@@ -55,7 +58,7 @@ def get_image(districts_ee, collection_name, band_name=None, s_date=START_DATE, 
 
 def compute_green_area(districts_ee):
     ndvi = get_image(districts_ee, 'COPERNICUS/S2_SR_HARMONIZED', 'NDVI')
-    #threshold 0.3 to consider shaded vegetation spaces
+    #threshold 0.3 to consider shaded vegetation sites in urban area
     green_area = (ndvi.gt(0.3)).multiply(ee.Image.pixelArea()).divide(10000)
 
     return green_area
@@ -93,11 +96,11 @@ def compute_lst(districts_ee):
     return lst_filled
 
 
-def export_image(project_id, districts_ee, image, crit, scale):
+def export_image(districts_ee, image, crit, scale):
     task = ee.batch.Export.image.toAsset(
     image=image,
     description=f'{crit}',
-    assetId=f'projects/{project_id}/assets/images/{crit}',
+    assetId=get_asset(crit),
     region=districts_ee.geometry(),
     scale=scale,
     maxPixels=1e9
@@ -105,17 +108,17 @@ def export_image(project_id, districts_ee, image, crit, scale):
     task.start()
 
 
-def run():
-    project_id = get_path('PROJECT_ID')
+def main():
     districts_gdf = gpd.read_file(get_path('LOC_DISTR_GDF'))
     districts_ee = geemap.gdf_to_ee(districts_gdf)
 
-    export_image(project_id, districts_ee, compute_green_area(districts_ee), 'green_area', 30)
+    export_image(districts_ee, compute_green_area(districts_ee), 'green_area', 30)
     #air data resolution ~1 km (TROPOMI, Sentinel-5P)
-    export_image(project_id, districts_ee, compute_air_multiband(districts_ee), 'air_multiband', 1000)
-    export_image(project_id, districts_ee, compute_lst(districts_ee), 'lst_filled', 30)
+    export_image(districts_ee, compute_air_multiband(districts_ee), 'air_multiband', 1000)
+    export_image(districts_ee, compute_lst(districts_ee), 'lst_filled', 30)
+
+    print("All images are exported to GEE Assets")
         
 
 if __name__ == '__main__':
-    run()
-    print("All images are exported to GEE Assets")
+    main()

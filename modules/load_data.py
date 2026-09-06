@@ -1,7 +1,8 @@
 import os
 import geopandas as gpd
 
-from config import UTM_37N
+from config import REQUIRED_ASSETS, UTM_37N
+
 
 def get_path(data_path):
 
@@ -13,15 +14,17 @@ def get_path(data_path):
     return value
 
 
+def get_asset(asset_name):
+    proj_id = get_path('PROJECT_ID')
+    asset_path = f'projects/{proj_id}/assets/images/{asset_name}'
+    return asset_path
+
+
 def _check_ee_assets(ee):
     missing = []
 
-    ee_assets = {
-        key: get_path(key)
-        for key in os.environ.keys() if key.startswith('ASSET_')
-    }
-
-    for path in ee_assets.values():
+    for crit in REQUIRED_ASSETS:
+        path = get_asset(crit)
         try:
             ee.data.getAsset(path)
 
@@ -55,7 +58,7 @@ def _ensure_assets_exist(ee):
 
     return len(missing_ee) == 0 and len(missing_loc) == 0
 
-            
+
 def load_all_data(ee):
     assets_ensured = _ensure_assets_exist(ee)
 
@@ -64,9 +67,9 @@ def load_all_data(ee):
         return None
     else:
         return {
-                'green_area': ee.Image(get_path('ASSET_GREEN_AREA')),
-                'air': ee.Image(get_path('ASSET_AIR')),
-                'lst': ee.Image(get_path('ASSET_LST')),
+                'green_area': ee.Image(get_asset('green_area')),
+                'air': ee.Image(get_asset('air_multiband')),
+                'lst': ee.Image(get_asset('lst_filled')),
                 'bld': gpd.read_file(get_path('LOC_BLD')).to_crs(UTM_37N),
                 'roads': gpd.read_file(get_path('LOC_ROADS')).to_crs(UTM_37N),
                 'districts_gdf': gpd.read_file(get_path('LOC_DISTR_GDF')).to_crs(UTM_37N)

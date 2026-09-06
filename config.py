@@ -1,18 +1,23 @@
-# ASSESSMENT PARAMETERS
+#ASSESSMENT PARAMETERS
 CRITERIA = ['green_area', 'air_pollution', 'lst', 'build_density', 'road_density']
 AIR_COMPONENT = ['NO2', 'SO2', 'O3', 'CO', 'AOD']
 
-# PROJECTION
-WGS84 = "EPSG:4326"
-UTM_37N = "EPSG:32637"
+REQUIRED_ASSETS = ['green_area', 'air_multiband', 'lst_filled']
 
-# DATES
-START_DATE = "2022-01-01"
-END_DATE = "2025-12-31"
-START_MONTH=6
-END_MONTH=8
+#PROJECTION
+WGS84 = 'EPSG:4326'
+UTM_37N = 'EPSG:32637'
 
-# VISUALIZATION
+#PREPROCESSING
+PRE_CONFIG = {
+    's_date': '2022-01-01',
+    'e_date': '2025-12-31',
+    's_month': 6,
+    'e_month': 8,
+    'cloud_cover': 15
+}
+
+#VISUALIZATION
 CMAPS = {
     "green_area": "YlGn",
     "air_pollution": "YlGn",
