@@ -1,19 +1,18 @@
 # __Comprehensive GIS-assessment of urban area (on the example of the Southern Administrative Okrug in Moscow)__
 
-## Overview
+### This is a pet-project developed as a practical implementation of the methodology from my Bachelor's thesis in Environmental Science. The main goal was to move away from routine manual work in QGIS and build a reproducible Python-based workflow.
 
-### Automation of integrated environmental index calculaion. The script automates satellite and cartographic data processing. This is a pet-project that was developed from the methodology of my bachelor's thesis in Environmental Science (RUDN, 2026). It is aimed to replace routine manual processing in QGIS and to design the scalable and reproducible python-based workflow. 
 
 ## Methodology
-### The environmental index is calculated as arithmethic mean of five selected environmental factors (criteria):
-- `green_area` - area of vegetation cover
-- `air_pollution` - air pollution subindex based on five air components: NO2, SO2, CO, O3, AOD
-- `lst` - land surface temperature
-- `build_density` - built-up area
-- `roads_density` - road network buffer area
+### The environmental index is calculated as the arithmethic mean of five selected environmental factors (criteria):
+- `green_area` - fraction of vegetation cover (Sentinel-2)
+- `air_pollution` - air pollution subindex based on the average of five air components: NO2, SO2, CO, O3, AOD (Sentinel-5P, MODIS)
+- `lst` - land surface temperature (combined from LANDSAT-8 and MODIS)
+- `build_density` - built-up area per district
+- `roads_density` - road network density including a buffer zone 
 
 
-## Project structure
+## Workflow
 
 ```mermaid
 flowchart TD
@@ -62,7 +61,7 @@ flowchart TD
 - `main.py`
 - `preprocessing.py`
 
-## Installation
+## How to run
 ### 1. Install dependencies:
 
 ```python
@@ -84,13 +83,6 @@ Put the obtained data into the `data/` folder
 </br>
 
 _You can obtain these layers from OpenStreetMap using QGIS (OSM plugin) or via the OSMnx library._
-_Example of retrieving data using OSMnx:_
-
-```python
-import osmnx as ox
-buildings = ox.features_from_place('Moscow, Russia', tags={'building': True})
-roads = ox.features_from_place('Moscow, Russia', tags={'highway': True})
-```
 
 __Rasters__
 
@@ -114,9 +106,14 @@ PROJECT_ID=your-cloud-project-ID
 GEE_AUTH_MODE=localhost
 ASSET_GREEN_AREA=projects/${PROJECT_ID}/assets/images/your-rasters
 # ...
-ASSET_DISTR_GDF=assets/districts.gpkg
 ```
 ### 4. Run pipeline
 ```bash
 python main.py
 ```
+
+## Notes
+
+- The index is **comparative**, not absolute. Designed for ranking districts within a city and don't respond to environmental standards.
+- Accuracy depends on satellite data quality and vector layer completeness.
+- Currently optimized for urban districts.

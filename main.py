@@ -9,6 +9,7 @@ from modules.load_data import load_all_data
 from modules.criteria import *
 from config import CRITERIA, CMAPS
 
+
 def validate_districts(df):
 
     if not 'name' in df.columns:
@@ -87,7 +88,7 @@ def main():
     data = load_all_data(ee)
 
     if not data:
-        print('Please obtain all of the required assets')
+        print('Please obtain all of the required input data.\nRun preprocessing.py if the ee assets are absent')
 
         return
     else:
@@ -121,6 +122,7 @@ def main():
         )
         
     print('Done! Results saved')
+
 
 if __name__ == '__main__':
     main()
