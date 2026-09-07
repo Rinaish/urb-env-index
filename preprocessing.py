@@ -4,8 +4,8 @@ import geemap
 from dotenv import load_dotenv
 load_dotenv()
 from modules.gee_auth import ee
-from modules.load_data import get_path, get_asset
-from config import PRE_CONFIG, WGS84
+from modules.load_data import get_path, load_asset
+from config import PRE_CONFIG, WGS84, UTM
 
 
 def mask_S2(image):
@@ -57,31 +57,27 @@ def get_image(districts_ee, collection_name, band_name=None, **kwargs):
 
 
 def compute_green_area(districts_ee):
-    ndvi = get_image(districts_ee, 'COPERNICUS/S2_SR_HARMONIZED', 'NDVI')
+    ndvi = get_image(districts_ee, 'COPERNICUS/S2_SR_HARMONIZED', 'NDVI').setDefaultProjection(UTM)
     #threshold 0.3 to consider shaded vegetation sites in urban area
-    green_area = (ndvi.gt(0.3)).multiply(ee.Image.pixelArea()).divide(10000)
+    green_area = (ndvi.gt(0.3)).multiply(ee.Image.pixelArea()).divide(10000).rename('green_area_ha')
 
     return green_area
 
 
 def compute_air_multiband(districts_ee):
     air_means = {}
-
+    air_means['AOD'] = get_image(districts_ee, 'MODIS/061/MCD19A2_GRANULES', 'Optical_Depth_047')
     air_means['NO2'] = get_image(districts_ee, 'COPERNICUS/S5P/OFFL/L3_NO2', 'tropospheric_NO2_column_number_density')
     air_means['SO2'] = get_image(districts_ee, 'COPERNICUS/S5P/OFFL/L3_SO2', 'SO2_column_number_density')
     air_means['O3'] = get_image(districts_ee, 'COPERNICUS/S5P/OFFL/L3_O3',  'O3_column_number_density')
     #spring season for CO to reduce high emition from vegetation in summer
     air_means['CO'] = get_image(districts_ee, 'COPERNICUS/S5P/OFFL/L3_CO',  'CO_column_number_density', s_month=3, e_month=5)
-    air_means['AOD'] = get_image(districts_ee, 'MODIS/061/MCD19A2_GRANULES', 'Optical_Depth_047')
 
     images = [
         air_means[name] \
         .rename(name) \
-        .reproject(crs=WGS84, scale=1000)
-        .resample('bicubic')
         for name in air_means.keys()
     ]
-
     air_multiband = ee.Image.cat(images)
 
     return air_multiband
@@ -90,8 +86,7 @@ def compute_air_multiband(districts_ee):
 def compute_lst(districts_ee):
     lst_high_res = get_image(districts_ee, 'LANDSAT/LC08/C02/T1_L2', 'ST_B10')
     lst_low_res = get_image(districts_ee, 'MODIS/061/MOD11A1', 'LST_Day_1km')
-    lst_low_res_upsampled = lst_low_res.reproject(crs=WGS84, scale=30).resample('bicubic')
-    lst_filled = lst_high_res.unmask(lst_low_res_upsampled)
+    lst_filled = lst_high_res.unmask(lst_low_res.resample('bilinear'))
 
     return lst_filled
 
@@ -100,9 +95,10 @@ def export_image(districts_ee, image, crit, scale):
     task = ee.batch.Export.image.toAsset(
     image=image,
     description=f'{crit}',
-    assetId=get_asset(crit),
+    assetId=load_asset(crit),
     region=districts_ee.geometry(),
     scale=scale,
+    crs=WGS84,
     maxPixels=1e9
 )
     task.start()
@@ -112,7 +108,7 @@ def main():
     districts_gdf = gpd.read_file(get_path('LOC_DISTR_GDF'))
     districts_ee = geemap.gdf_to_ee(districts_gdf)
 
-    export_image(districts_ee, compute_green_area(districts_ee), 'green_area', 30)
+    export_image(districts_ee, compute_green_area(districts_ee), 'green_area', 10)
     #air data resolution ~1 km (TROPOMI, Sentinel-5P)
     export_image(districts_ee, compute_air_multiband(districts_ee), 'air_multiband', 1000)
     export_image(districts_ee, compute_lst(districts_ee), 'lst_filled', 30)

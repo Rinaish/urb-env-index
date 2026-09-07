@@ -6,7 +6,7 @@ REQUIRED_ASSETS = ['green_area', 'air_multiband', 'lst_filled']
 
 #PROJECTION
 WGS84 = 'EPSG:4326'
-UTM_37N = 'EPSG:32637'
+UTM = 'EPSG:32637'
 
 #PREPROCESSING
 PRE_CONFIG = {

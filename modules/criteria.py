@@ -2,7 +2,7 @@ import geopandas as gpd
 import geemap
 
 from modules.gee_auth import ee
-from config import AIR_COMPONENT, WGS84
+from config import AIR_COMPONENT, WGS84, UTM
 
 
 def min_max_norm(col, stimulating=False):
@@ -24,6 +24,7 @@ def compute_green_area(districts_ee, districts_gdf, green_area):
         collection=districts_ee,
         reducer=ee.Reducer.sum(),
         scale=30,
+        crs=UTM,
         tileScale=8
     )
 
@@ -31,7 +32,7 @@ def compute_green_area(districts_ee, districts_gdf, green_area):
     green_area_gdf.rename(columns={'sum': 'green_area'}, inplace=True)
     green_area_gdf['green_area'] /= districts_gdf['area_ha']
 
-    return green_area_gdf
+    return green_area_gdf.to_crs(WGS84)
 
 
 def compute_air(districts_ee, air):
@@ -39,6 +40,8 @@ def compute_air(districts_ee, air):
         collection=districts_ee,
         reducer=ee.Reducer.mean(),
         scale=1000,
+        crs=UTM,
+        tileScale=8
     )
 
     air_stats_gdf = geemap.ee_to_gdf(air_stats)
@@ -49,7 +52,7 @@ def compute_air(districts_ee, air):
     norm_cols = [f'norm_{comp}' for comp in AIR_COMPONENT]
     air_stats_gdf['air_pollution'] = air_stats_gdf[norm_cols].mean(axis=1)
 
-    return air_stats_gdf
+    return air_stats_gdf.to_crs(WGS84)
 
 
 def compute_lst(districts_ee, lst):
@@ -59,13 +62,15 @@ def compute_lst(districts_ee, lst):
         collection=districts_ee,
         reducer=ee.Reducer.mean(),
         scale=30,
+        crs=UTM,
+        tileScale=8
     )
 
     lst_gdf = geemap.ee_to_gdf(lst_stats)
     lst_gdf.rename(columns={'mean': 'lst'}, inplace=True)
     lst_gdf['lst'] -= k
     
-    return lst_gdf
+    return lst_gdf.to_crs(WGS84)
 
 
 def compute_roads_density(districts_gdf, roads, buffer=100):
