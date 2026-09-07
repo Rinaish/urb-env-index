@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 import matplotlib.pyplot as plt
 
 from dotenv import load_dotenv
@@ -8,16 +7,6 @@ from modules.gee_auth import ee
 from modules.load_data import load_all_data
 from modules.criteria import *
 from config import CRITERIA, CMAPS
-
-
-def validate_districts(df):
-
-    if not 'name' in df.columns:
-        df = df.reset_index().rename(columns={"index": "name"})
-    elif df['name'].isna().any():
-        df['name'] = df.apply(lambda r: str(r.name) if pd.isna(r['name']) else r['name'], axis=1)
-        
-    return df
 
 
 def plot_map(gdf, col, output, cmap):
@@ -94,7 +83,6 @@ def main():
     else:
         green_area, air, lst, bld, roads, districts_gdf = data.values()
 
-    districts_gdf = validate_districts(districts_gdf)
     districts_gdf['area_ha'] = districts_gdf.geometry.area / 10000
     districts_ee = geemap.gdf_to_ee(districts_gdf)
 

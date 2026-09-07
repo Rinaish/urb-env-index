@@ -1,7 +1,8 @@
 import os
+import pandas as pd
 import geopandas as gpd
 
-from config import REQUIRED_ASSETS, UTM_37N
+from config import REQUIRED_ASSETS, UTM
 
 
 def get_path(data_path):
@@ -14,7 +15,7 @@ def get_path(data_path):
     return value
 
 
-def get_asset(asset_name):
+def load_asset(asset_name):
     proj_id = get_path('PROJECT_ID')
     asset_path = f'projects/{proj_id}/assets/images/{asset_name}'
     return asset_path
@@ -24,7 +25,7 @@ def _check_ee_assets(ee):
     missing = []
 
     for crit in REQUIRED_ASSETS:
-        path = get_asset(crit)
+        path = load_asset(crit)
         try:
             ee.data.getAsset(path)
 
@@ -52,25 +53,42 @@ def _check_loc_files():
     return missing
 
 
-def _ensure_assets_exist(ee):
+def _ensure_data_exist(ee):
     missing_ee = _check_ee_assets(ee)
     missing_loc = _check_loc_files()
 
     return len(missing_ee) == 0 and len(missing_loc) == 0
 
 
-def load_all_data(ee):
-    assets_ensured = _ensure_assets_exist(ee)
+def _load_vector_layer(file_name, need_name=False):
+    gdf = gpd.read_file(get_path(file_name)).to_crs(UTM)
+    gdf['geometry'] = gdf['geometry'].make_valid()
+    gdf = gdf[~gdf.geometry.is_empty].copy()
 
-    if not assets_ensured:
+    if need_name:
+        if not 'name' in gdf.columns:
+            gdf = gdf.reset_index().rename(columns={"index": "name"})
+        elif gdf['name'].isna().any():
+            gdf['name'] = gdf.apply(lambda r: str(r.name) if pd.isna(r['name']) else r['name'], axis=1)
+
+        return gdf[['geometry', 'name']]
+    else:
+
+        return gdf[['geometry']]
+
+
+def load_all_data(ee):
+    data_ensured = _ensure_data_exist(ee)
+
+    if not data_ensured:
 
         return None
     else:
         return {
-                'green_area': ee.Image(get_asset('green_area')),
-                'air': ee.Image(get_asset('air_multiband')),
-                'lst': ee.Image(get_asset('lst_filled')),
-                'bld': gpd.read_file(get_path('LOC_BLD')).to_crs(UTM_37N),
-                'roads': gpd.read_file(get_path('LOC_ROADS')).to_crs(UTM_37N),
-                'districts_gdf': gpd.read_file(get_path('LOC_DISTR_GDF')).to_crs(UTM_37N)
+                'green_area': ee.Image(load_asset('green_area')),
+                'air': ee.Image(load_asset('air_multiband')),
+                'lst': ee.Image(load_asset('lst_filled')),
+                'bld': _load_vector_layer('LOC_BLD'),
+                'roads': _load_vector_layer('LOC_ROADS'),
+                'districts_gdf': _load_vector_layer('LOC_DISTR_GDF', need_name=True)
             }
