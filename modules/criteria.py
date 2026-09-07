@@ -77,10 +77,14 @@ def compute_roads_density(districts_gdf, roads, buffer=100):
     roads_c = roads.copy()
     
     roads_c['geometry'] = roads_c.geometry.buffer(buffer)
-    road_density_gdf = gpd.overlay(roads_c, districts_gdf, how='intersection', keep_geom_type=True).dissolve(by='name')
-    road_density_gdf = road_density_gdf.reset_index()
+    road_density_gdf = (
+        gpd.overlay(roads_c, districts_gdf, how='intersection', keep_geom_type=True)
+        .dissolve(by='name')
+        .reset_index())
+    
     road_density_gdf['road_density'] = (road_density_gdf.geometry.area / 10000) / road_density_gdf['area_ha']
-
+    road_density_gdf = districts_gdf.merge(road_density_gdf.drop(columns=['geometry']), on='name', how='left')
+    
     return road_density_gdf.to_crs(WGS84)
 
 
@@ -93,6 +97,8 @@ def compute_build_density(districts_gdf, bld):
         .agg({'bld_area_ha': 'sum'})
         .merge(districts_gdf[['name', 'area_ha', 'geometry']], on='name', how='left')
     )
+
     build_density_gdf['build_density'] = build_density_gdf['bld_area_ha'] / build_density_gdf['area_ha']
+    build_density_gdf = districts_gdf.merge(build_density_gdf.drop(columns=['geometry']), on='name', how='left')
 
     return build_density_gdf.to_crs(WGS84)
