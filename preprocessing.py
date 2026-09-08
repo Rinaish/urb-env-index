@@ -4,8 +4,25 @@ import geemap
 from dotenv import load_dotenv
 load_dotenv()
 from modules.gee_auth import ee
-from modules.load_data import get_path, load_asset
-from config import PRE_CONFIG, WGS84, UTM
+from modules.load_data import get_path, load_asset, check_ee_assets
+from config import PRE_CONFIG, WGS84
+
+
+def ensure_catalog_exist():
+    folder_path = load_asset()
+
+    try:
+        ee.data.getAsset(folder_path)
+        
+    except ee.EEException as e:
+        err_message = str(e).lower()
+
+        if 'not found' in err_message or 'not exist' in err_message:
+            ee.data.createAsset({'type': 'Folder'}, folder_path)
+            print('Folder created')
+        else:
+            print(f'Could not create a folder: {e}')
+            raise
 
 
 def mask_S2(image):
@@ -57,7 +74,7 @@ def get_image(districts_ee, collection_name, band_name=None, **kwargs):
 
 
 def compute_green_area(districts_ee):
-    ndvi = get_image(districts_ee, 'COPERNICUS/S2_SR_HARMONIZED', 'NDVI').setDefaultProjection(UTM)
+    ndvi = get_image(districts_ee, 'COPERNICUS/S2_SR_HARMONIZED', 'NDVI')
     #threshold 0.3 to consider shaded vegetation sites in urban area
     green_area = (ndvi.gt(0.3)).multiply(ee.Image.pixelArea()).divide(10000).rename('green_area_ha')
 
@@ -103,17 +120,21 @@ def export_image(districts_ee, image, crit, scale):
 )
     task.start()
 
+def export_all_images(districts_ee):
+    if check_ee_assets(ee):
+        export_image(districts_ee, compute_green_area(districts_ee), 'green_area', 10)
+        export_image(districts_ee, compute_air_multiband(districts_ee), 'air_multiband', 1000)
+        export_image(districts_ee, compute_lst(districts_ee), 'lst_filled', 30)
+
+        print("All images are exported to GEE Assets")
+
 
 def main():
     districts_gdf = gpd.read_file(get_path('LOC_DISTR_GDF'))
     districts_ee = geemap.gdf_to_ee(districts_gdf)
 
-    export_image(districts_ee, compute_green_area(districts_ee), 'green_area', 10)
-    #air data resolution ~1 km (TROPOMI, Sentinel-5P)
-    export_image(districts_ee, compute_air_multiband(districts_ee), 'air_multiband', 1000)
-    export_image(districts_ee, compute_lst(districts_ee), 'lst_filled', 30)
-
-    print("All images are exported to GEE Assets")
+    ensure_catalog_exist()
+    export_all_images(districts_ee)
         
 
 if __name__ == '__main__':

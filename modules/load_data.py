@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import geopandas as gpd
 
-from config import REQUIRED_ASSETS, UTM
+from config import REGION_NAME, REQUIRED_ASSETS, UTM
 
 
 def get_path(data_path):
@@ -15,13 +15,18 @@ def get_path(data_path):
     return value
 
 
-def load_asset(asset_name):
-    proj_id = get_path('PROJECT_ID')
-    asset_path = f'projects/{proj_id}/assets/images/{asset_name}'
-    return asset_path
+_project_id = get_path('PROJECT_ID')
+
+def load_asset(asset_name=None):
+    asset_path = f'projects/{_project_id}/assets/{REGION_NAME}_images'
+
+    if asset_name:
+        return f'{asset_path}/{asset_name}'
+    else:
+        return asset_path
 
 
-def _check_ee_assets(ee):
+def check_ee_assets(ee):
     missing = []
 
     for crit in REQUIRED_ASSETS:
@@ -29,8 +34,7 @@ def _check_ee_assets(ee):
         try:
             ee.data.getAsset(path)
 
-        except Exception as e:
-            print(f"EE asset {path} not found")
+        except ee.EEException:
             missing.append(path)
 
     return missing
@@ -48,14 +52,21 @@ def _check_loc_files():
     
         if not os.path.isfile(path):
             missing.append(path)
-            print(f"File {path} is not found")
 
     return missing
 
 
 def _ensure_data_exist(ee):
-    missing_ee = _check_ee_assets(ee)
+    missing_ee = check_ee_assets(ee)
     missing_loc = _check_loc_files()
+
+    if missing_ee:
+        for path in missing_ee:
+            print(f"EE asset {path} not found")
+
+    if missing_loc:
+        for path in missing_loc:
+            print(f"File {path} not found")
 
     return len(missing_ee) == 0 and len(missing_loc) == 0
 

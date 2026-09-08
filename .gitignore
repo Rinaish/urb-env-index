@@ -10,10 +10,12 @@ __pycache__/
 
 Thumbs.db
 
-results/geopackages
-results/tables
-results/figures/*
-!results/figures/air_pollution.png
-!results/figures/integral.png
+results/SVAO/
+results/UAO/*
+!results/UAO/figures/
+
+results/UAO/figures/*
+!results/UAO/figures/air_pollution.png
+!results/UAO/figures/integral.png
 
 data
