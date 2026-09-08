@@ -6,12 +6,13 @@ load_dotenv()
 from modules.gee_auth import ee
 from modules.load_data import load_all_data
 from modules.criteria import *
-from config import CRITERIA, CMAPS
+from config import CRITERIA, CMAPS, REGION_NAME
 
 
 def plot_map(gdf, col, output, cmap):
     fig, ax = plt.subplots(figsize=(10, 8))
     ax.axis('off')
+    label = f"{col.replace('_', ' ').replace('norm', 'Normalized')} index"
 
     gdf.plot(
         ax=ax,
@@ -21,7 +22,7 @@ def plot_map(gdf, col, output, cmap):
         linewidth=0.5,
         legend=True,
         legend_kwds={
-            'label': f"{col.replace('_', ' ').replace('norm', 'Normalized')} index",
+            'label': label,
             "shrink": 0.9,
             "aspect": 25
             },
@@ -37,7 +38,8 @@ def plot_map(gdf, col, output, cmap):
         ha='center',
         va='center'
     )
-
+        
+    plt.title(f'{label} in {REGION_NAME}')
     plt.tight_layout()
     plt.savefig(output, dpi=300, bbox_inches='tight')
     plt.close()
@@ -64,20 +66,21 @@ def calc_integral_idx(normalized):
     return normalized
 
 
-def save_results(crit, gdf):
-    os.makedirs('results/geopackages', exist_ok=True)
-    os.makedirs('results/tables', exist_ok=True)
+def save_results(crit, gdf, output):
+    os.makedirs(f'{output}/geopackages', exist_ok=True)
+    os.makedirs(f'{output}/tables', exist_ok=True)
 
-    gdf.to_file(f'results/geopackages/{crit}.gpkg')
+    gdf.to_file(f'{output}/geopackages/{crit}.gpkg')
     table = gdf.drop(columns='geometry')
-    table.to_csv(f'results/tables/{crit}.csv', index=False, encoding='utf-8-sig')
+    table.to_csv(f'{output}/tables/{crit}.csv', index=False, encoding='utf-8-sig')
 
 
 def main():
     data = load_all_data(ee)
+    output = f'results/{REGION_NAME}'
 
     if not data:
-        print('Please obtain all of the required input data.\nRun preprocessing.py if the ee assets are absent')
+        print('Please obtain all of the required input data.\nRun preprocessing.py if ee assets are absent or check paths in .env file')
 
         return
     else:
@@ -98,18 +101,18 @@ def main():
     normalized_gdf = normalize_criteria(districts_gdf, results)
     results['integral'] = calc_integral_idx(normalized_gdf)
 
-    os.makedirs('results/figures', exist_ok=True)
+    os.makedirs(f'{output}/figures', exist_ok=True)
     for crit, gdf in results.items():
-        save_results(crit, gdf)
+        save_results(crit, gdf, output)
         
         plot_map(
             normalized_gdf,
             col=f'norm_{crit}',
-            output=f'results/figures/{crit}.png',
+            output=f'{output}/figures/{crit}.png',
             cmap=CMAPS.get(crit)
         )
         
-    print('Done! Results saved')
+    print(f'Done! Results saved to {output}')
 
 
 if __name__ == '__main__':

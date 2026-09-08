@@ -1,3 +1,6 @@
+#STUDY AREA NAME
+REGION_NAME = 'SVAO'
+
 #ASSESSMENT PARAMETERS
 CRITERIA = ['green_area', 'air_pollution', 'lst', 'build_density', 'road_density']
 AIR_COMPONENT = ['NO2', 'SO2', 'O3', 'CO', 'AOD']
