@@ -72,33 +72,30 @@ def compute_lst(districts_ee, lst):
     
     return lst_gdf.to_crs(WGS84)
 
+# Road network density = total length of roads (km) / district area (km^2)
+def compute_roads_density(districts_gdf, roads):
+    roads['length_km'] = roads.geometry.length / 1000
 
-def compute_roads_density(districts_gdf, roads, buffer=100):
-    roads_c = roads.copy()
-    
-    roads_c['geometry'] = roads_c.geometry.buffer(buffer)
-    road_density_gdf = (
-        gpd.overlay(roads_c, districts_gdf, how='intersection', keep_geom_type=True)
-        .dissolve(by='name')
-        .reset_index())
-    
-    road_density_gdf['road_density'] = (road_density_gdf.geometry.area / 10000) / road_density_gdf['area_ha']
-    road_density_gdf = districts_gdf.merge(road_density_gdf.drop(columns=['geometry']), on='name', how='left')
+    roads = (
+        gpd.sjoin(roads, districts_gdf, how='left', predicate='intersects')
+        .groupby(by='name')['length_km'].sum()
+    )
+
+    road_density_gdf = districts_gdf.join(roads, on='name')
+    road_density_gdf['road_density'] = road_density_gdf['length_km'] / (road_density_gdf.geometry.area * 1e-6)
     
     return road_density_gdf.to_crs(WGS84)
 
-
+# Total area of buildings (ha) / district area (ha)
 def compute_build_density(districts_gdf, bld):
     bld['bld_area_ha'] = bld.geometry.area / 10000
 
-    build_density_gdf = gpd.GeoDataFrame(
+    bld = (
         gpd.sjoin(districts_gdf, bld, how='left', predicate='intersects')
-        .groupby(['name'])
-        .agg({'bld_area_ha': 'sum'})
-        .merge(districts_gdf[['name', 'area_ha', 'geometry']], on='name', how='left')
+        .groupby(by='name')['bld_area_ha'].sum()
     )
-
+    
+    build_density_gdf = districts_gdf.join(bld, on='name')
     build_density_gdf['build_density'] = build_density_gdf['bld_area_ha'] / build_density_gdf['area_ha']
-    build_density_gdf = districts_gdf.merge(build_density_gdf.drop(columns=['geometry']), on='name', how='left')
 
     return build_density_gdf.to_crs(WGS84)

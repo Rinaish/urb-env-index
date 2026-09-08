@@ -9,7 +9,7 @@
 - `air_pollution` - air pollution subindex based on the average of five air components: NO2, SO2, CO, O3, AOD (Sentinel-5P, MODIS)
 - `lst` - land surface temperature (combined from LANDSAT-8 and MODIS)
 - `build_density` - built-up area per district
-- `roads_density` - road network density including a buffer zone 
+- `road_density` - total length of roads per district
 
 
 ## Workflow
@@ -76,7 +76,7 @@ __Vectors__
 | ------ | ------ | ----------- |
 | districts | .gpkg  | Administrative units at the city or county scale |
 | buildings  | .gpkg  | Buildings polygons |
-| roads | .gpkg | Linear road objects (Highway and rail) |
+| roads | .gpkg | Linear highway objects |
 |        |        |             |
 
 Put the obtained data into the `data/` folder
