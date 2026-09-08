@@ -1,3 +1,4 @@
+import time
 import geopandas as gpd
 import geemap
 
@@ -119,14 +120,55 @@ def export_image(districts_ee, image, crit, scale):
     maxPixels=1e9
 )
     task.start()
+    return task
+
 
 def export_all_images(districts_ee):
-    if check_ee_assets(ee):
-        export_image(districts_ee, compute_green_area(districts_ee), 'green_area', 10)
-        export_image(districts_ee, compute_air_multiband(districts_ee), 'air_multiband', 1000)
-        export_image(districts_ee, compute_lst(districts_ee), 'lst_filled', 30)
 
-        print("All images are exported to GEE Assets")
+    if len(check_ee_assets(ee)) == 3:
+
+        tasks = [
+            export_image(districts_ee, compute_green_area(districts_ee), 'green_area', 30),
+            export_image(districts_ee, compute_air_multiband(districts_ee), 'air_multiband', 1000),
+            export_image(districts_ee, compute_lst(districts_ee), 'lst_filled', 30)
+        ]
+
+        timeout = 1200
+        start_time = time.time()
+        active = True
+
+        while active:
+            if time.time() - start_time > timeout:
+                print('Request timed out: running tasks were canceled')
+                for t in tasks:
+                    if t.active(): 
+                        t.cancel()
+                        print(f'Canceled {t.status().get("description")}')
+                break
+
+            text = []
+            for t in tasks:
+                status = t.status()
+                t_name = status.get('description')
+                t_state = status.get('state')
+
+                if t.active():
+                    text.append(f'{t_name} --- {t_state}')
+
+                elif t_state == 'COMPLETED':
+                    text.append(f'{t_name} export completed')
+
+                elif t_state == 'FAILED':
+                    err_message = status.get('error_message', 'unknown error')
+                    text.append(f'Export failed: {err_message}')
+
+            print('\r' + ' ' * 80, end='')
+            print(f'\r{', '.join(text)}', end='')
+            active = any(t.active() for t in tasks)
+
+            time.sleep(30)
+            
+    else: print('You already have the necessary assets for this region')
 
 
 def main():

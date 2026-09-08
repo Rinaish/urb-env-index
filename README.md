@@ -40,10 +40,10 @@ flowchart TD
 ```
 
 ## Results
-#### Example of ranking maps: air pollution index and normalized integral index
+#### Example of ranking maps:
 <div style="display: flex; justify-content: center; gap: 20px;">
-  <img src="results/figures/air_pollution.png" alt="Air pollution index" width="40%">
-  <img src="results/figures/integral.png" alt="Integral index" width="40%">
+  <img src="results/UAO/figures/integral.png" alt="Integral index in UAO" width="40%">
+  <img src="results/SVAO/figures/integral.png" alt="Integral index in SVAO" width="40%">
 </div>
 
 ## Repository structure
@@ -104,7 +104,6 @@ cp .env.example .env
 ```python
 PROJECT_ID=your-cloud-project-ID
 GEE_AUTH_MODE=localhost
-ASSET_GREEN_AREA=projects/${PROJECT_ID}/assets/images/your-rasters
 # ...
 ```
 ### 4. Run pipeline
