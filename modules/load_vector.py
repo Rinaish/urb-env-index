@@ -29,8 +29,6 @@ def _check_loc_files():
 
 
 def _load_vector_layer(file_name, need_name=False):
-    import geopandas as gpd
-
     gdf = gpd.read_file(get_path(file_name)).to_crs(UTM)
     gdf['geometry'] = gdf['geometry'].make_valid()
     gdf = gdf[~gdf.geometry.is_empty].copy()
@@ -55,6 +53,7 @@ def ensure_spatial_overlap(districts_gdf, ee_image):
     """
 
     from shapely.geometry import box
+    
     target_crs = 'EPSG:4326'
     
     image_coords = ee_image.geometry().bounds().coordinates().getInfo()[0]
