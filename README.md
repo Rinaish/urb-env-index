@@ -77,7 +77,7 @@ cp .env.example .env
 
 - Enter your credentials and assets' directories
 
-```python
+```env
 PROJECT_ID=your-cloud-project-ID
 LOC_DISTR=data/districts.gpkg
 LOC_ROADS=data/roads.gpkg
