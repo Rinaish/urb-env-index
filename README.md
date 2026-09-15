@@ -24,11 +24,11 @@ flowchart LR
 ```
 
 ## Results
+
 #### Example of ranking maps:
-<div style="display: flex; justify-content: center; gap: 20px;">
-  <img src="results/SAO/figures/total_score.png" alt="Total environmental score in SAO" width="35%">
-  <img src="results/NEAO/figures/total_score.png" alt="Total environmental score in NEAO" width="35%">
-</div>
+| SAO | NEAO |
+|:---:|:---:|
+| <img src="results/SAO/figures/total_score.png" width="400"> | <img src="results/NEAO/figures/total_score.png" width="400"> |
 
 
 #### Example Output
@@ -50,11 +50,10 @@ pip install -r requirements.txt
 
 __Vectors__
 
-| Data   | Format | Description |
-| ------ | ------ | ----------- |
-| districts | .gpkg  | Administrative units at the city or county scale |
-| roads | .gpkg | Linear highway objects |
-|        |        |             |
+| Data   | Format | Description | Tag example |
+| ------ | ------ | ----------- | ------------ |
+| districts | .gpkg  | Administrative units at the city or county scale | `admin_level=8`, `admin_level=9` |
+| roads | .gpkg | Linear highway objects | `highway=motorway`, `highway=primary`, `highway=secondary`,.. |
 
 Put the obtained data into the `data/` folder
 </br>
@@ -80,16 +79,16 @@ cp .env.example .env
 
 ```python
 PROJECT_ID=your-cloud-project-ID
-GEE_AUTH_MODE=localhost
-# ...
+LOC_DISTR=data/districts.gpkg
+LOC_ROADS=data/roads.gpkg
 ```
-### 4. Run pipeline specifying your study region
+
+### 4. Run pipeline
 ```bash
 python main.py
 ```
 
 ## Notes
-
 - The assessment is comparative, not absolute. Designed for ranking districts within a city and doesn't respond to environmental standards.
 - Accuracy depends on satellite data quality and vector layer completeness.
 - Currently optimized for urban districts.
