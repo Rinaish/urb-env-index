@@ -1,70 +1,48 @@
-# __Comprehensive GIS-assessment of urban area (on the example of the Southern Administrative Okrug in Moscow)__
+# __GIS-based environmental assessment of urban districts__
 
-### This is a pet-project developed as a practical implementation of the methodology from my Bachelor's thesis in Environmental Science. The main goal was to move away from routine manual work in QGIS and build a reproducible Python-based workflow.
+### This is a personal project developed as a practical implementation of the methodology from my Bachelor's thesis in Environmental Science. The main goal was to automate routine GIS workflows and build a reproducible Python-based workflow.
 
 
 ## Methodology
-### The environmental index is calculated as the arithmethic mean of five selected environmental factors (criteria):
-- `green_area` - fraction of vegetation cover (Sentinel-2)
-- `air_pollution` - air pollution subindex based on the average of five air components: NO2, SO2, CO, O3, AOD (Sentinel-5P, MODIS)
+### The total environmental score is calculated as the arithmetic mean of five selected factors (criteria):
+- `vegetation_density` - green saturation of each region (Sentinel-2)
+- `air_pollution` - air pollution subindex based on the average of five air components: NO2, SO2, CO, O3 (Sentinel-5P)
 - `lst` - land surface temperature (combined from LANDSAT-8 and MODIS)
-- `build_density` - built-up area per district
-- `road_density` - total length of roads per district
+- `built_up_area` - built-up area per district including impervious surfaces
+- `road_density` - total length (km) of roads per district
 
 
 ## Workflow
-
 ```mermaid
-flowchart TD
-    subgraph A[Data collection and processing]
-        direction LR
-        
-        subgraph R[Raster analysis]
-            R1(Satellite data<br/>Sentinel-2, S5P, Landsat 8, MODIS) --> R2[NDVI / LST / S5P composite]
-            R2 --> R3[Zonal statistics<br/>reduceRegions]
-        end
-        
-        subgraph V[Vector analysis]
-            V1(Cartographic layers<br/>Geopackages) --> V2[Geospatial operations]
-            V2 --> V3[Bufferization, overlay<br/>aggregation, grouping]
-        end
-    end
-    
-    R3 --> C[Normalization and<br/>integrated index calculation]
-    V3 --> C
-    
-    C --> D[Visualization and export]
-    D --> D1(Geopackage)
-    D --> D2(PNG)
-    D --> D3(CSV)
+flowchart LR
+    A[Sentinel-2, S5P,<br/>Landsat-8, MODIS] --> B[Indices &<br/>composites]
+    C[Vector layers<br/>OSM] --> D[Geospatial<br/>operations]
+    B --> E[Zonal statistics<br/>reduceRegions]
+    E --> F[Normalization &<br/>total score]
+    D --> F
+    F --> G[Geopackage,<br/>CSV, PNG]
 ```
 
 ## Results
 #### Example of ranking maps:
 <div style="display: flex; justify-content: center; gap: 20px;">
-  <img src="results/UAO/figures/integral.png" alt="Integral index in UAO" width="40%">
-  <img src="results/SVAO/figures/integral.png" alt="Integral index in SVAO" width="40%">
+  <img src="results/SAO/figures/total_score.png" alt="Total environmental score in SAO" width="35%">
+  <img src="results/NEAO/figures/total_score.png" alt="Total environmental score in NEAO" width="35%">
 </div>
 
-## Repository structure
-- `data/`
-- `results/`
-    - `figures/`
-    - `geopackages/`
-    - `tables/`
-- `modules/`
-    - `criteria.py`
-    - `gee_auth.py`
-    - `load_data.py`
-- `.env`
-- `config.py`
-- `main.py`
-- `preprocessing.py`
+
+#### Example Output
+
+| District | Vegetation | Built-up | LST (°C) | Air | Road density | Total score |
+|----------|------------|----------|----------|-----|--------------|-------------|
+| Донской  | 0.21 | 0.47 | 31.3 | 0.55 | 0.42 | 0.51 |
+| Даниловский | 0.13 | 0.62 | 31.6 | 0.48 | 0.40 | 0.45 |
+| ... | ... | ... | ... | ... | ... | ... |
 
 ## How to run
 ### 1. Install dependencies:
 
-```python
+```bash
 pip install -r requirements.txt
 ```
 
@@ -75,7 +53,6 @@ __Vectors__
 | Data   | Format | Description |
 | ------ | ------ | ----------- |
 | districts | .gpkg  | Administrative units at the city or county scale |
-| buildings  | .gpkg  | Buildings polygons |
 | roads | .gpkg | Linear highway objects |
 |        |        |             |
 
@@ -86,9 +63,9 @@ _You can obtain these layers from OpenStreetMap using QGIS (OSM plugin) or via t
 
 __Rasters__
 
-Rasters area exported once to GEE Assets via the [preprocessing.py](preprocessing.py):
+Rasters are exported once to GEE Assets via the [preprocessing.py](preprocessing.py)
 ```bash
-python preprocessing.py
+python preprocessing.py --region example_region
 ```
 
 ### 3. Configure the .env file
@@ -99,20 +76,20 @@ python preprocessing.py
 cp .env.example .env
 ```
 
-- Enter your crendentials and assets' directories
+- Enter your credentials and assets' directories
 
 ```python
 PROJECT_ID=your-cloud-project-ID
 GEE_AUTH_MODE=localhost
 # ...
 ```
-### 4. Run pipeline
+### 4. Run pipeline specifying your study region
 ```bash
 python main.py
 ```
 
 ## Notes
 
-- The index is **comparative**, not absolute. Designed for ranking districts within a city and don't respond to environmental standards.
+- The assessment is comparative, not absolute. Designed for ranking districts within a city and doesn't respond to environmental standards.
 - Accuracy depends on satellite data quality and vector layer completeness.
 - Currently optimized for urban districts.

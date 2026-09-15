@@ -1,7 +1,7 @@
 import geopandas as gpd
 import geemap
+import ee
 
-from modules.gee_auth import ee
 from config import AIR_COMPONENT, WGS84, UTM
 
 
@@ -19,23 +19,40 @@ def min_max_norm(col, stimulating=False):
     return norm if not stimulating else 1 - norm
 
 
-def compute_green_area(districts_ee, districts_gdf, green_area):
-    stats = green_area.reduceRegions(
+def get_vegetation_density(districts_ee, veg_density):
+    veg_stats = veg_density.reduceRegions(
         collection=districts_ee,
-        reducer=ee.Reducer.sum(),
-        scale=30,
+        reducer=ee.Reducer.mean(),
+        scale=10,
         crs=UTM,
         tileScale=8
     )
 
-    green_area_gdf = geemap.ee_to_gdf(stats)
-    green_area_gdf.rename(columns={'sum': 'green_area'}, inplace=True)
-    green_area_gdf['green_area'] /= districts_gdf['area_ha']
+    veg_density_gdf = geemap.ee_to_gdf(veg_stats)
+    veg_density_gdf.rename(columns={'mean': 'vegetation_density'}, inplace=True)
 
-    return green_area_gdf.to_crs(WGS84)
+    return veg_density_gdf.to_crs(WGS84)
 
 
-def compute_air(districts_ee, air):
+def get_built_up_area(districts_ee, districts_gdf, blt_up_mask):
+    blt_up_area = blt_up_mask.multiply(ee.Image.pixelArea()).divide(10000).rename('built_up_area_ha')
+    
+    blt_stats = blt_up_area.reduceRegions(
+        collection=districts_ee,
+        reducer=ee.Reducer.sum(),
+        scale=10,
+        crs=UTM,
+        tileScale=8
+    )
+
+    blt_up_area_gdf = geemap.ee_to_gdf(blt_stats)
+    blt_up_area_gdf.rename(columns={'sum': 'built_up_area'}, inplace=True)
+    blt_up_area_gdf['built_up_area'] /= districts_gdf['area_ha'].values
+
+    return blt_up_area_gdf
+
+
+def get_air_pollution(districts_ee, air):
     air_stats = air.reduceRegions(
         collection=districts_ee,
         reducer=ee.Reducer.mean(),
@@ -55,7 +72,7 @@ def compute_air(districts_ee, air):
     return air_stats_gdf.to_crs(WGS84)
 
 
-def compute_lst(districts_ee, lst):
+def get_lst(districts_ee, lst):
     k = 273.15
 
     lst_stats = lst.reduceRegions(
@@ -72,8 +89,9 @@ def compute_lst(districts_ee, lst):
     
     return lst_gdf.to_crs(WGS84)
 
+
 # Road network density = total length of roads (km) / district area (km^2)
-def compute_roads_density(districts_gdf, roads):
+def get_road_density(districts_gdf, roads):
     roads['length_km'] = roads.geometry.length / 1000
 
     roads = (
@@ -85,17 +103,3 @@ def compute_roads_density(districts_gdf, roads):
     road_density_gdf['road_density'] = road_density_gdf['length_km'] / (road_density_gdf.geometry.area * 1e-6)
     
     return road_density_gdf.to_crs(WGS84)
-
-# Total area of buildings (ha) / district area (ha)
-def compute_build_density(districts_gdf, bld):
-    bld['bld_area_ha'] = bld.geometry.area / 10000
-
-    bld = (
-        gpd.sjoin(districts_gdf, bld, how='left', predicate='intersects')
-        .groupby(by='name')['bld_area_ha'].sum()
-    )
-    
-    build_density_gdf = districts_gdf.join(bld, on='name')
-    build_density_gdf['build_density'] = build_density_gdf['bld_area_ha'] / build_density_gdf['area_ha']
-
-    return build_density_gdf.to_crs(WGS84)

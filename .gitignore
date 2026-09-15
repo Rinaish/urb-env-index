@@ -10,12 +10,17 @@ __pycache__/
 
 Thumbs.db
 
-results/SVAO/
-results/UAO/*
-!results/UAO/figures/
+results/NEAO/*
+!results/NEAO/figures/
+results/NEAO/figures/*
+!results/NEAO/figures/total_score.png
 
-results/UAO/figures/*
-!results/UAO/figures/air_pollution.png
-!results/UAO/figures/integral.png
+
+results/SAO/*
+!results/SAO/figures/
+results/SAO/figures/*
+!results/SAO/figures/total_score.png
 
 data
+
+.state.json
