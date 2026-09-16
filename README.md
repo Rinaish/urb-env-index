@@ -1,6 +1,19 @@
-# __GIS-based environmental assessment of urban districts__
+# __Remote sensing-based environmental assessment of urban districts__
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![Google Earth Engine](https://img.shields.io/badge/Google%20Earth%20Engine-4285F4?logo=googleearthengine&logoColor=white)
+![GeoPandas](https://img.shields.io/badge/GeoPandas-139C5A?logo=pandas&logoColor=white)
+![MIT License](https://img.shields.io/badge/MIT%20License-FFFAFA)
 
-### This is a personal project developed as a practical implementation of the methodology from my Bachelor's thesis in Environmental Science. The main goal was to automate routine GIS workflows and build a reproducible Python-based workflow.
+[RU Русская версия](README.ru.md)
+
+### A Python-based pipeline automating GIS workflows for urban ecology. Integrates multi-source satellite data and OSM layers to calculate spectral indices, perform zonal statistics, and produce normalized environmental scores. Developed as a practical implementation of my Bachelor's thesis methodology in Environmental Science.
+
+### Key tools: 
+- __Google Earth Engine__
+- __GeoPandas__
+- __Geemap__ 
+- __Shapely__
+- __Matplotlib__
 
 
 ## Methodology
@@ -92,3 +105,4 @@ python main.py
 - The assessment is comparative, not absolute. Designed for ranking districts within a city and doesn't respond to environmental standards.
 - Accuracy depends on satellite data quality and vector layer completeness.
 - Currently optimized for urban districts.
+- Subjective assessment methodology.
