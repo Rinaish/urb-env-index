@@ -133,7 +133,7 @@ def export_all_images(tasks: dict, region, force=False):
 
     if _ensure_catalog_exist(region):
 
-        missing = _check_ee_assets(ee, region)
+        missing = _check_ee_assets(region)
         missing_names = [path.split('/')[-1] for path in missing] if missing else []
         
         if missing and not force:
@@ -158,7 +158,7 @@ def export_all_images(tasks: dict, region, force=False):
 
             _export_tracking(tasks_to_start)
 
-        else: print('You already have all of the required assets')
+        else: print('All assets exist. No export needed.')
 
     else:
         print('Export failed')
